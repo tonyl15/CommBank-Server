@@ -88,4 +88,83 @@ public class GoalControllerTests
             index++;
         }
     }
+
+    [Fact]
+    public async void UpdateGoalWithIcon()
+    {
+        // Arrange
+        var goals = collections.GetGoals();
+        var users = collections.GetUsers();
+        IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
+        IUsersService usersService = new FakeUsersService(users, users[0]);
+        GoalController controller = new(goalsService, usersService);
+
+        var originalGoal = goals[0];
+        var updatedGoal = new Goal
+        {
+            Id = originalGoal.Id,
+            Name = "Updated House Down Payment",
+            Icon = "🏡", // Different icon
+            TargetAmount = 500000,
+            TargetDate = DateTime.Now.AddYears(2),
+            Balance = 50000.00,
+            UserId = originalGoal.UserId
+        };
+
+        // Act
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        controller.ControllerContext.HttpContext = httpContext;
+        var result = await controller.Update(originalGoal.Id!, updatedGoal);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        // The Icon property should be properly handled in the update
+    }
+
+    [Fact]
+    public async void GetGoalReturnsIconProperty()
+    {
+        // Arrange
+        var goals = collections.GetGoals();
+        var users = collections.GetUsers();
+        IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
+        IUsersService usersService = new FakeUsersService(users, users[0]);
+        GoalController controller = new(goalsService, usersService);
+
+        // Act
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        controller.ControllerContext.HttpContext = httpContext;
+        var result = await controller.Get(goals[0].Id!);
+
+        // Assert
+        Assert.IsAssignableFrom<Goal>(result.Value);
+        Assert.NotNull(result.Value);
+        Assert.Equal("🏠", result.Value!.Icon); // Verify Icon is returned
+        Assert.Equal(goals[0].Name, result.Value!.Name);
+    }
+
+    [Fact]
+    public async void GetAllGoalsReturnsIconProperties()
+    {
+        // Arrange
+        var goals = collections.GetGoals();
+        var users = collections.GetUsers();
+        IGoalsService goalsService = new FakeGoalsService(goals, goals[0]);
+        IUsersService usersService = new FakeUsersService(users, users[0]);
+        GoalController controller = new(goalsService, usersService);
+
+        // Act
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        controller.ControllerContext.HttpContext = httpContext;
+        var result = await controller.Get();
+
+        // Assert
+        Assert.NotEmpty(result);
+        var expectedIcons = new[] { "🏠", "🚗", "✈️" };
+        
+        for (int i = 0; i < Math.Min(result.Count, expectedIcons.Length); i++)
+        {
+            Assert.Equal(expectedIcons[i], result[i].Icon);
+        }
+    }
 }
